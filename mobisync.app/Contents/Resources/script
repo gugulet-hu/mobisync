@@ -1,0 +1,112 @@
+#!/bin/zsh
+# This script syncs an Android with a Mac using adb and adb-sync.
+# Version 9.5 (16 April 2019)
+
+# The below are Platypus features for managing UI
+echo "DETAILS:HIDE" # Hides the deatiled text in progress bar
+echo "PROGRESS:0" # Show the progress bar at 0%
+echo "Script starting" # Show this message above the progress bar
+
+# Export paths for use if the script is turned into an app using Platypus.
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+# Set the path to the log file and destinations
+export LOG=~/Projects/Programming/push/mobisync/mobisync-log.txt # A tilde will not work within quote marks.
+export MEDIA=/sdcard/DCIM/Moment/
+export DOCUMENTS=/sdcard/Documents/
+export DOWNLOAD=/sdcard/Download/
+export DOWNLOADS=~/Downloads/
+export MAC_MUSIC=~/Music/
+export ANDROID_MUSIC=/sdcard/Music/
+export OCTOPUS=~/Documents/tentacles/
+export TENTACLES=/sdcard/.tentacles/
+export APPS=~/Backup/Apps/
+export RECOVERY=~/Backup/Recovery/
+export MOBILE=~/Backup/Mobile/
+export SIGNAL=~/Backup/Signal/
+export AUDIO=/sdcard/Record/
+
+echo "NOTIFICATION:Syncing is starting..." # Send a notification (with logo)
+echo "PROGRESS:10"
+echo "Default paths set"
+
+# Function: Reviews the last command for errors. Then prints update complete to log or shows error dialog. Takes section variable.
+catcher () {
+if [ "$?" = "0" ]; then
+    printf "$1 synced." >> $LOG # If no error, print sync complete to file.
+    echo "" >> $LOG # Add a line to file.
+else # If error, show a dialog stating the section where the error occured.
+    echo "NOTIFICATION:'$1' sync failed."
+    printf "$1 failed to sync." >> $LOG # If error, print sync failed to file.
+    echo "" >> $LOG # Add a line to file.
+fi
+}
+
+# Function: Creates a horizontal line in the text file.
+line () {
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - >> $LOG # Prints line
+}
+
+# Writes the header for the log file: Program, Version number, Date and Line.
+{ echo "mobisync 9.5"; echo "Log: " `date`; line; } > $LOG
+
+# Syncing images / video on device to the Downloads folder and sync the wallpaper on computer.
+{ adb-sync --reverse $MEDIA $DOWNLOADS; } >> $LOG
+catcher Images
+line
+echo "PROGRESS:20"
+echo "Images synced"
+
+# Syncing audio on device to the Downloads folder on computer. Audio is isolated to extension-type downloads only.
+{ adb-sync --reverse $AUDIO $DOWNLOADS; } >> $LOG
+catcher Audio
+line
+echo "PROGRESS:30"
+echo "Media synced"
+
+# Syncing documents on device to the Downloads folder on computer.
+{ adb-sync --reverse $DOCUMENTS $DOWNLOADS; adb-sync --reverse $DOWNLOAD $DOWNLOADS; } >> $LOG
+catcher Documents
+line
+echo "PROGRESS:35"
+
+# Syncing qSelf data on device to the Documents/qSelf folder on computer.
+{ adb-sync --reverse $TENTACLES  $OCTOPUS; } >> $LOG
+catcher qSelf
+line
+echo "PROGRESS:40"
+echo "Documents synced"
+
+# Syncing music on computer to the music on phone.
+adb-sync --delete $MAC_MUSIC $ANDROID_MUSIC >> $LOG
+catcher Music
+line
+echo "PROGRESS:50"
+echo "Music synced to phone"
+
+# Syncing app, recovery and TWRP backups.
+{ adb-sync --reverse --delete /sdcard/Backup/Apps/ $APPS; adb-sync --reverse /sdcard/.Ota/ $RECOVERY; adb-sync --reverse --delete /sdcard/TWRP/Backups/75fbabd4/ $MOBILE; adb-sync --reverse --delete /sdcard/Signal/Backups/ $SIGNAL; } >> $LOG
+catcher Backups
+line
+echo "PROGRESS:70"
+echo "Mobile backups synced"
+
+# Syncing system backups and recovery to phone.
+{ adb-sync --delete ~/Documents/Secure.sparsebundle /sdcard/Backup/System/; adb-sync --delete $RECOVERY /sdcard/Backup/Recovery/; } >> $LOG
+catcher System
+line
+echo "PROGRESS:80"
+echo "System backups synced"
+
+# Deleting all synced media from phone.
+{ adb shell rm -rf '/sdcard/Record/*.mp3'; adb shell rm -rf '/sdcard/Movies/*'; adb shell rm -rf '/sdcard/DJI/Camera/*'; adb shell rm -rf '/sdcard/DCIM/*'; adb shell rm -rf '/sdcard/DCIM/.thumbnails/*'; adb shell rm -rf '/sdcard/Documents/*'; adb shell rm -rf '/sdcard/Download/*' } >> $LOG
+echo "PROGRESS:90"
+echo "Cleanup completed"
+
+# Notification that the sync is over.
+printf "Syncing is complete. END" >> $LOG
+echo "PROGRESS:100"
+echo "NOTIFICATION:Syncing is complete"
+
+echo "QUITAPP"
