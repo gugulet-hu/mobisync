@@ -6,6 +6,8 @@
 
 This script syncs an Android with a Mac using adb and adb-sync. You will need to edit the script to meet your own needs. You will need to enable 'USB Debugging' mode in Developer options on your Android in order for this to work.
 
+**WARNING: This app will delete files on your android. Be careful!**
+
 ## Dependencies
 
 **adb**  
