@@ -49,7 +49,7 @@ printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - >> $LOG # Prints line
 }
 
 # Writes the header for the log file: Program, Version number, Date and Line.
-{ echo "mobisync 11.2"; echo "Log: " `date`; line; } > $LOG
+{ echo "mobisync 11.2.1"; echo "Log: " `date`; line; } > $LOG
 
 # Syncing images and video on device to the Downloads folder and sync the wallpaper on computer.
 { adb shell find "/sdcard/DCIM/Camera/" -iname "*.mp4" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb shell find "/sdcard/DCIM/Camera/" -iname "*.jpg" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb shell find "/sdcard/DCIM/" -iname "*.jpg" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb shell find "/sdcard/Pictures/" -iname "*.jpg" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; } >> $LOG
