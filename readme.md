@@ -13,10 +13,10 @@ This script syncs an Android with a Mac using adb and adb-sync. You will need to
 **adb**
 
 ```bash
-_brew install android-platform-tools_
+brew install android-platform-tools
 ```
 
-[**adb-sync**
+**adb-sync**
 
 ```bash
 git clone https://github.com/google/adb-sync.git
