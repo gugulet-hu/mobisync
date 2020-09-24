@@ -35,3 +35,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+<p align="center"><a href="https://gugulet.hu?src=github-repo"><img src="https://gugulet.hu/site/wp-content/uploads/logo-bottom-500x100-1.png" height="50"></a></p>
