@@ -1,7 +1,7 @@
 #!/bin/zsh
 # This script syncs an Android with a Mac using adb and adb-sync.
-# Version 11.2.1 (23 April 2020)
-# Fixed System backup and Pictures folder download.
+# Version 12.0 (27 March 2021)
+# Moved to backup sync as main way to sync. No more file deletion from this script. Documents syncing added.
 
 # Export paths for use if the script is turned into an app using Platypus.
 export LC_ALL=en_US.UTF-8
@@ -9,14 +9,28 @@ export LANG=en_US.UTF-8
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/$"
 
 # Sets the local paths
-export LOG=~/Projects/Programming/push/mobisync/mobisync-log.txt
+export LOG=~/Library/Logs/mobisync.log
 export DOWNLOADS=~/Downloads/
-export MOBILE=~/Mobile/
-export SIGNAL=~/Mobile/Signal/
-export TENTACLES=~/Documents/.tentacles/
+export BACKUP=~/Mobile/Backup/
+export AUTOMATE=~/Mobile/Automate/
+export RESTORE=~/Mobile/Restore/
 export MUSIC=~/Music/
-export SYSTEM=/Volumes/Archive\ 01/System/
-export TRAVEL=~/Documents/Travel/
+export DOCUMENTS=~/Documents/
+
+# Sets the remote paths
+export REMOTE_IMAGES="/sdcard/DCIM/"
+export REMOTE_PICTURES="/sdcard/Pictures/"
+export REMOTE_THUMBNAILS="/sdcard/Pictures/.thumbnails/"
+export REMOTE_AUDIO="/sdcard/Audio/"
+export REMOTE_MUSIC="/sdcard/Music/"
+export REMOTE_DOCUMENTS="/sdcard/Documents/"
+export REMOTE_RESTORE="/sdcard/Restore/"
+export REMOTE_BACKUP="/sdcard/Backup/"
+export REMOTE_DOWNLOAD="/sdcard/Download/"
+export REMOTE_AUTOMATE="/sdcard/.automate/"
+
+# Set error variable
+ERROR=0
 
 echo "NOTIFICATION: Sync is starting..." # Send a notification (with logo)
 
@@ -36,9 +50,11 @@ fi
 # Function: If there has been an error in the script open the log file.
 verify () {
 if [ $ERROR = 1 ]; then
+        { echo "Error: Mobisync encountered an error in execution"; line; } >> $LOG
         open $LOG
         echo "NOTIFICATION: Syncing completed with some errors."
 else
+        { echo "Success: Mobisync completed successfully"; line; } >> $LOG
         echo "NOTIFICATION: Syncing is complete"
 fi
 }
@@ -49,40 +65,36 @@ printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - >> $LOG # Prints line
 }
 
 # Writes the header for the log file: Program, Version number, Date and Line.
-{ echo "mobisync 11.2.1"; echo "Log: " `date`; line; } > $LOG
+{ echo "mobisync 12.0"; echo "Log: " `date`; line; } >> $LOG
 
 # Syncing images and video on device to the Downloads folder and sync the wallpaper on computer.
-{ adb shell find "/sdcard/DCIM/Camera/" -iname "*.mp4" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb shell find "/sdcard/DCIM/Camera/" -iname "*.jpg" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb shell find "/sdcard/DCIM/" -iname "*.jpg" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb shell find "/sdcard/Pictures/" -iname "*.jpg" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; } >> $LOG
+{ adb shell find $REMOTE_IMAGES -type f -iname \*.jpg -o -type f -iname \*.mp4 -o -type f -iname \*.dng | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb shell rm -rf $REMOTE_THUMBNAILS; adb shell find $REMOTE_PICTURES -type f -iname "*.jpg" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; } >> $LOG
 catcher Images
 line
 
 # Syncing audio on device to the Downloads folder on computer and Music from the computer.
-{ adb shell find "/sdcard/Recordings/" -iname "*.mp3" | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb-sync --delete $MUSIC "/sdcard/Music/" } >> $LOG
+{ adb shell find $REMOTE_AUDIO -type f -iname \*.mp3 -o -type f -iname \*.ogg | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; adb-sync --delete $MUSIC $REMOTE_MUSIC; } >> $LOG
 catcher Audio
 line
 
 # Syncing documents on device to the Downloads folder on computer.
-{ adb-sync --reverse $DOWNLOADS "/sdcard/Documents/"; adb-sync --reverse $DOWNLOADS "/sdcard/Download/"; adb shell rm -rf '/sdcard/Documents/*'; adb-sync --delete $TRAVEL "/sdcard/Documents/"; } >> $LOG
+{ adb-sync --two-way $DOCUMENTS $REMOTE_DOCUMENTS; adb-sync --reverse $REMOTE_DOWNLOAD $DOWNLOADS; } >> $LOG
 catcher Documents
 line
 
-# Syncing qSelf data on device to the Documents/qSelf folder on computer.
-{ adb-sync --reverse --delete "/sdcard/.tentacles/" $TENTACLES; } >> $LOG
+# Syncing Automate data on device to the computer
+{ adb-sync --reverse $REMOTE_AUTOMATE $AUTOMATE; } >> $LOG
 catcher Tentacles
 line
 
-# Syncing app, recovery and TWRP backups.
-{ adb-sync --reverse --delete "/sdcard/Mobile/" $MOBILE; adb-sync --reverse --delete "/sdcard/Signal/Backups/" $SIGNAL; adb-sync --delete $SYSTEM "/sdcard/System/"; } >> $LOG
-catcher Backups
-line
-
-# Deleting all synced media from phone.
-{ adb shell rm -rf '/sdcard/Recordings/*.mp3'; adb shell rm -rf '/sdcard/Movies/*'; adb shell rm -rf '/sdcard/DCIM/*'; adb shell rm -rf '/sdcard/Pictures/*'; adb shell rm -rf '/sdcard/Download/*'; adb shell rm -rf '/sdcard/Downloads/*' } >> $LOG
-catcher Delete
+# Syncing app, recovery and backups.
+{ adb-sync --two-way $RESTORE $REMOTE_RESTORE; adb-sync --reverse --delete --times $REMOTE_BACKUP $BACKUP; } >> $LOG
+catcher Backup
 line
 
 # Notification that the sync is over.
 printf "Syncing is complete. END" >> $LOG
+line
 verify $ERROR
 
 echo "QUITAPP"
