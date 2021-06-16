@@ -50,11 +50,12 @@ printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - >> $LOG # Prints line
 # Writes the header for the log file: Program, Version number, Date and Line.
 { echo "mobisync 12.1"; echo "Log: " `date`; line; } >> $LOG
 
-# Syncing Music from the computer.
+# Syncing images and video on device to the Downloads folder on computer.
 { 
-    adb-sync --delete --exclude .DS_Store  ~/Music/ "/sdcard/Music/"; 
+    adb shell find "/sdcard/DCIM/" -type f -iname \*.jpg -o -type f -iname \*.mp4 -o -type f -iname \*.dng | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; 
+    adb shell find "/sdcard/Pictures/" -type f -iname \*.jpg -o -type f -iname \*.mp4 -o -type f -iname \*.dng | tr -d '\015' | while read line; do adb pull "$line" $DOWNLOADS; done; 
 } >> $LOG
-catcher Music
+catcher Images
 line
 
 # Syncing documents on device to the Downloads folder on computer.
@@ -81,6 +82,13 @@ line
     adb-sync --reverse --times "/sdcard/Backup/" ~/Mobile/Backup/; 
 } >> $LOG
 catcher Backup
+line
+
+# Syncing Music from the computer.
+{ 
+    adb-sync --delete --exclude .DS_Store  ~/Music/ "/sdcard/Music/"; 
+} >> $LOG
+catcher Music
 line
 
 # Notification that the sync is over.
